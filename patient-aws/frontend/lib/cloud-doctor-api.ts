@@ -5,7 +5,7 @@
  */
 
 // CloudFront에서 /api/* 경로를 ALB로 프록시하므로 빈 문자열 사용 (same-origin)
-const API_URL = '';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 /**
  * API 응답 타입
