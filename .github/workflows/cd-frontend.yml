@@ -9,7 +9,7 @@ on:
 
 env:
   AWS_REGION: ap-northeast-2
-  S3_BUCKET: cloud-doctor-patient-frontend
+  S3_BUCKET: joon-cloud-doctor234
   DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} 
 
 jobs:
