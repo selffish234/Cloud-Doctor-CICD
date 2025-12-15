@@ -1,0 +1,51 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'terraform/**'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-northeast-2
+  TF_WORKING_DIR: ./terraform/patient-aws
+
+jobs:
+  terraform:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.6.0
+
+    - name: Terraform Init
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      run: terraform init
+
+    # Note: In a real environment, you might want to use a Plan -> Validation -> Apply workflow for safety.
+    # For this guide, we use auto-approve for automation simplicity.
+    - name: Terraform Apply
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      run: |
+        # Create minimal tfvars file from secrets if needed, or rely on defaults + ENV vars
+        # We assume tfvars are committed or passed via env vars TF_VAR_xxx
+        
+        # terraform apply -auto-approve
+        # WARNING: We are skipping actual apply in this example to prevent accidental changes during demo.
+        # Uncomment the line below to enable actual apply.
+        terraform plan -no-color

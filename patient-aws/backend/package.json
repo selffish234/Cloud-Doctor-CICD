@@ -1,0 +1,31 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Portfolio + Cloud Doctor MVP Backend",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "helmet": "^8.0.0",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.4.7",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "sequelize": "^6.35.0",
+    "mysql2": "^3.11.4"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4",
+    "nodemon": "^3.0.2"
+  }
+}

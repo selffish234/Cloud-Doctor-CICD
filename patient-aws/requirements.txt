@@ -1,0 +1,9 @@
+# Patient AWS - Chaos App Dependencies
+# 메가존클라우드 포트폴리오 MVP
+
+# AWS SDK for Python (CloudWatch Logs 직접 전송 시 사용)
+# 현재 버전은 stdout 로그를 사용하지만, 향후 확장 가능
+boto3==1.34.34
+
+# 로깅 강화 (선택사항)
+python-json-logger==2.0.7

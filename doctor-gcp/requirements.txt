@@ -1,0 +1,26 @@
+# Doctor Zone - Vertex AI Version
+# GCP 크레딧 사용 가능!
+
+# Web Framework
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+python-multipart==0.0.12
+
+# AWS SDK (CloudWatch Logs)
+boto3==1.35.0
+botocore==1.35.0
+
+# Google Vertex AI (Gemini) - GCP 크레딧 사용!
+google-cloud-aiplatform==1.71.0
+vertexai==1.71.0
+
+# Anthropic Claude API (Terraform Generation)
+anthropic==0.39.0
+
+# HTTP Client (Slack Webhooks)
+httpx==0.27.0
+requests==2.32.0
+
+# Utilities
+python-dotenv==1.0.1
+pydantic==2.10.0

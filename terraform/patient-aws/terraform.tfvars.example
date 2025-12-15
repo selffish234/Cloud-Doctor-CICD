@@ -1,0 +1,26 @@
+# ========================================
+# Cloud Doctor MVP - Patient Zone
+# Terraform Variables Example
+# ========================================
+# Copy this file to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars to git (it contains secrets)
+
+# General
+aws_region = "ap-northeast-2"
+prefix     = "patient-zone"
+
+# Network
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["ap-northeast-2a", "ap-northeast-2c"]
+
+# Database
+db_password       = "ChangeMe123!"  # CHANGE THIS!
+db_instance_class = "db.t3.micro"
+db_multi_az       = false  # Set to true for production
+
+# Application
+jwt_secret        = "your-secret-key-here"  # CHANGE THIS!
+ecs_desired_count = 2
+
+# Frontend
+frontend_bucket_name = "cloud-doctor-patient-frontend-unique-name"  # Must be globally unique
