@@ -19,10 +19,10 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
+      uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -41,9 +41,21 @@ jobs:
     # For this guide, we use auto-approve for automation simplicity.
     - name: Terraform Apply
       working-directory: ${{ env.TF_WORKING_DIR }}
+      env:
+        TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
+        TF_VAR_jwt_secret: ${{ secrets.TF_VAR_JWT_SECRET }}
+        TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
       run: |
         # Create minimal tfvars file from secrets if needed, or rely on defaults + ENV vars
         # We assume tfvars are committed or passed via env vars TF_VAR_xxx
+        
+        # terraform apply -auto-approve
+        # WARNING: We are skipping actual apply in this example to prevent accidental changes during demo.
+        # Uncomment the line below to enable actual apply.
+        # Variables are now passed via 'env' block above
+        # export TF_VAR_db_password="${{ secrets.TF_VAR_DB_PASSWORD }}"
+        # export TF_VAR_jwt_secret="${{ secrets.TF_VAR_JWT_SECRET }}"
+        # export TF_VAR_domain_name="${{ vars.DOMAIN_NAME }}"
         
         # terraform apply -auto-approve
         # WARNING: We are skipping actual apply in this example to prevent accidental changes during demo.
