@@ -12,13 +12,13 @@ terraform {
   }
 
   # Uncomment for remote state
-  # backend "s3" {
-  #   bucket         = "cloud-doctor-tfstate"
-  #   key            = "patient-aws/terraform.tfstate"
-  #   region         = "ap-northeast-2"
-  #   dynamodb_table = "cloud-doctor-tflock"
-  #   encrypt        = true
-  # }
+  backend "s3" {
+    bucket         = "cloud-doctor-tfstate-selffish234"
+    key            = "patient-aws/terraform.tfstate"
+    region         = "ap-northeast-2"
+    dynamodb_table = "cloud-doctor-tflock"
+    encrypt        = true
+  }
 }
 
 # ========================================
