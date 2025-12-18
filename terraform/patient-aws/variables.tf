@@ -90,13 +90,13 @@ variable "domain_name" {
 variable "enable_monitoring" {
   description = "Enable CloudWatch Alarm + Lambda auto-trigger for Doctor Zone"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "doctor_zone_url" {
   description = "GCP Cloud Run Doctor Zone URL (예: https://doctor-zone-xxx.run.app)"
   type        = string
-  default     = ""
+  default     = "https://doctor-zone-843761229274.asia-northeast3.run.app"
 }
 
 variable "slack_webhook_url" {
