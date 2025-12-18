@@ -82,9 +82,64 @@ variable "domain_name" {
   default     = "" # Optional: Leave empty if not using custom domain
 }
 
-variable "enable_vpn" {
-  description = "Enable AWS Client VPN"
+
+
+# ========================================
+# Monitoring Variables (Auto-Trigger)
+# ========================================
+variable "enable_monitoring" {
+  description = "Enable CloudWatch Alarm + Lambda auto-trigger for Doctor Zone"
   type        = bool
-  default     = true
+  default     = false
+}
+
+variable "doctor_zone_url" {
+  description = "GCP Cloud Run Doctor Zone URL (예: https://doctor-zone-xxx.run.app)"
+  type        = string
+  default     = ""
+}
+
+variable "slack_webhook_url" {
+  description = "Slack Webhook URL for fallback notifications"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "alarm_email" {
+  description = "Email address for alarm notifications (optional)"
+  type        = string
+  default     = ""
+}
+
+# Alarm Thresholds
+variable "alarm_error_threshold" {
+  description = "Error count threshold (5분간)"
+  type        = number
+  default     = 10
+}
+
+variable "alarm_cpu_threshold" {
+  description = "ECS CPU usage threshold (%)"
+  type        = number
+  default     = 80
+}
+
+variable "alarm_memory_threshold" {
+  description = "ECS Memory usage threshold (%)"
+  type        = number
+  default     = 80
+}
+
+variable "alarm_5xx_threshold" {
+  description = "ALB 5xx error count threshold (5분간)"
+  type        = number
+  default     = 10
+}
+
+variable "alarm_rds_cpu_threshold" {
+  description = "RDS CPU usage threshold (%)"
+  type        = number
+  default     = 80
 }
 

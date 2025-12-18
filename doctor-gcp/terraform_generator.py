@@ -1,18 +1,26 @@
 """
 Doctor Zone - Terraform Generator
-Uses Claude 3.5 Sonnet to generate infrastructure fixes as Terraform code
+Uses AWS Bedrock (Claude 3.5 Sonnet) to generate infrastructure fixes as Terraform code
 """
 
-import anthropic
+import boto3
+import json
+import logging
 from typing import Dict, List
 
+logger = logging.getLogger(__name__)
 
 class TerraformGenerator:
-    """Generates Terraform code to fix detected infrastructure issues"""
+    """Generates Terraform code to fix detected infrastructure issues using AWS Bedrock"""
 
-    def __init__(self, api_key: str):
-        """Initialize Claude AI client"""
-        self.client = anthropic.Anthropic(api_key=api_key)
+    def __init__(self, region_name: str = "us-east-1"):
+        """
+        Initialize AWS Bedrock Runtime client
+        Claude 3.5 Sonnet is available in us-east-1, us-west-2, etc. default to us-east-1
+        """
+        self.client = boto3.client("bedrock-runtime", region_name=region_name)
+        # Claude 3.5 Sonnet Model ID in Bedrock
+        self.model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
 
     def generate_fix(self, analysis: Dict, patient_zone_info: Dict) -> Dict:
         """
@@ -28,7 +36,7 @@ class TerraformGenerator:
             - explanation: Human-readable explanation
             - apply_instructions: How to apply the fix
         """
-        if not analysis["detected_issues"]:
+        if not analysis.get("issues"):
             return {
                 "terraform_code": "",
                 "explanation": "No issues detected - no infrastructure changes needed.",
@@ -38,43 +46,48 @@ class TerraformGenerator:
         prompt = self._build_generation_prompt(analysis, patient_zone_info)
 
         try:
-            message = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=4000,
+            # Bedrock converse API structure
+            response = self.client.converse(
+                modelId=self.model_id,
                 messages=[{
                     "role": "user",
-                    "content": prompt
-                }]
+                    "content": [{"text": prompt}]
+                }],
+                inferenceConfig={
+                    "maxTokens": 4096,
+                    "temperature": 0.5,
+                    "topP": 0.9
+                }
             )
 
-            response_text = message.content[0].text
+            # Extract response text
+            response_text = response['output']['message']['content'][0]['text']
             result = self._parse_claude_response(response_text)
             return result
 
         except Exception as e:
+            logger.error(f"Bedrock generation error: {str(e)}", exc_info=True)
             return {
                 "terraform_code": f"# Error generating Terraform code: {str(e)}",
                 "explanation": f"Failed to generate fix: {str(e)}",
-                "apply_instructions": ["Check Claude API configuration", "Verify API key"]
+                "apply_instructions": ["Check Bedrock IAM permissions", "Verify AWS credentials"]
             }
 
     def _build_generation_prompt(self, analysis: Dict, patient_info: Dict) -> str:
         """Build Terraform generation prompt for Claude"""
 
-        issues = ", ".join(analysis["detected_issues"])
-        recommendations = "\n".join(f"- {rec}" for rec in analysis["recommendations"])
-
+        issues_list = analysis.get("issues", [])
+        issues_desc = "\n".join([f"- {issue['type']}: {issue['description']}" for issue in issues_list])
+        
         prompt = f"""You are a Cloud Infrastructure Engineer specializing in AWS and Terraform.
 
 **Current Situation:**
 A monitoring system detected the following issues in a production AWS environment:
 
-Issues: {issues}
-Severity: {analysis["severity"]}
-Summary: {analysis["summary"]}
-
-Recommendations from log analysis:
-{recommendations}
+Issues Detected:
+{issues_desc}
+Summary: {analysis.get("summary", "N/A")}
+Severity: {analysis.get("severity", "UNKNOWN")}
 
 **Current Infrastructure (Patient Zone):**
 - Region: {patient_info.get("region", "ap-northeast-2")}
@@ -91,42 +104,6 @@ Generate Terraform code to fix the detected issues. Follow these guidelines:
 3. **Add comments explaining each fix**
 4. **Include variable definitions if needed**
 5. **Make changes production-safe** (no downtime if possible)
-
-**Common Fix Patterns:**
-
-For "db-failure":
-- Check RDS security group rules
-- Verify subnet group configuration
-- Add RDS connection endpoint validation
-
-For "pool-exhaustion":
-- Increase RDS max_connections parameter
-- Adjust ECS task count or resources
-- Add connection pool monitoring
-
-For "memory-leak":
-- Increase ECS task memory limits
-- Add memory-based auto-scaling
-- Configure OOM kill handling
-
-For "slow-query":
-- Enable RDS Performance Insights
-- Adjust slow_query_log parameters
-- Add RDS read replicas if needed
-
-For "api-timeout":
-- Increase ALB target group deregistration delay
-- Adjust ECS health check settings
-- Add timeout configuration to task definition
-
-For "jwt-expiry":
-- Add environment variable for token expiration
-- Update task definition with correct JWT_EXPIRATION value
-
-For "high-cpu":
-- Increase ECS task CPU units
-- Add CPU-based auto-scaling policy
-- Enable ECS Container Insights
 
 **Response Format:**
 
@@ -148,13 +125,7 @@ Please provide your response in this exact format:
 2. [Include backup/rollback steps if needed]
 3. [Verification steps]
 
-**IMPORTANT:** Write the "Explanation" section in Korean (한국어). The Terraform code comments can be in English, but the explanation must be in Korean for Korean-speaking MSP engineers.
-
-**Important:**
-- Use Terraform 1.0+ syntax
-- Include proper resource dependencies
-- Add tags for resource tracking
-- Consider blast radius (minimize impact)
+**IMPORTANT:** Write the "Explanation" section in Korean (한국어). The Terraform code comments can be in English, but the explanation must be in Korean.
 """
         return prompt
 
@@ -215,7 +186,7 @@ Please provide your response in this exact format:
 def format_terraform_for_slack(terraform_result: Dict) -> str:
     """Format Terraform generation result for Slack notification"""
 
-    message = "🔧 *Terraform Fix Generated*\n\n"
+    message = "🔧 *Terraform Fix Generated (via AWS Bedrock)*\n\n"
     message += f"*Explanation:* {terraform_result['explanation']}\n\n"
 
     if terraform_result['terraform_code']:

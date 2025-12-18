@@ -1,63 +1,50 @@
-name: Deploy Infrastructure
+name: Deploy Infrastructure (Terraform)
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches:
+      - main
     paths:
       - 'terraform/**'
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 env:
   AWS_REGION: ap-northeast-2
-  TF_WORKING_DIR: ./terraform/patient-aws
+  TF_WORKING_DIR: 'terraform/patient-aws'
 
 jobs:
   terraform:
-    name: Terraform Apply
     runs-on: ubuntu-latest
-    environment: production
-
+    
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: 1.6.0
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-    - name: Terraform Init
-      working-directory: ${{ env.TF_WORKING_DIR }}
-      run: terraform init
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
 
-    # Note: In a real environment, you might want to use a Plan -> Validation -> Apply workflow for safety.
-    # For this guide, we use auto-approve for automation simplicity.
-    - name: Terraform Apply
-      working-directory: ${{ env.TF_WORKING_DIR }}
-      env:
-        TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
-        TF_VAR_jwt_secret: ${{ secrets.TF_VAR_JWT_SECRET }}
-        TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
-      run: |
-        # Create minimal tfvars file from secrets if needed, or rely on defaults + ENV vars
-        # We assume tfvars are committed or passed via env vars TF_VAR_xxx
-        
-        # terraform apply -auto-approve
-        # WARNING: We are skipping actual apply in this example to prevent accidental changes during demo.
-        # Uncomment the line below to enable actual apply.
-        # Variables are now passed via 'env' block above
-        # export TF_VAR_db_password="${{ secrets.TF_VAR_DB_PASSWORD }}"
-        # export TF_VAR_jwt_secret="${{ secrets.TF_VAR_JWT_SECRET }}"
-        # export TF_VAR_domain_name="${{ vars.DOMAIN_NAME }}"
-        
-        # terraform apply -auto-approve
-        # WARNING: We are skipping actual apply in this example to prevent accidental changes during demo.
-        # Uncomment the line below to enable actual apply.
-        terraform plan -no-color
+      - name: Terraform Apply
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform apply -auto-approve
+        env:
+          # Secrets from GitHub
+          TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
+          TF_VAR_jwt_secret: ${{ secrets.TF_VAR_JWT_SECRET }}
+          TF_VAR_alarm_email: ${{ secrets.ALARM_EMAIL }}
+          # Variables
+          TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
+          TF_VAR_frontend_bucket_name: ${{ vars.FRONTEND_BUCKET_NAME }}

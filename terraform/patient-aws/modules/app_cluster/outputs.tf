@@ -32,3 +32,8 @@ output "cloudwatch_log_group_name" {
   description = "CloudWatch log group name"
   value       = aws_cloudwatch_log_group.ecs.name
 }
+
+output "alb_arn_suffix" {
+  description = "ALB ARN suffix for CloudWatch metrics"
+  value       = aws_lb.this.arn_suffix
+}

@@ -249,16 +249,41 @@ module "static_site" {
 }
 
 
-# ========================================
-# Client VPN Module
-# ========================================
-module "vpn" {
-  source = "./modules/vpn"
-  count  = var.enable_vpn ? 1 : 0
 
-  prefix             = var.prefix
-  vpc_id             = module.network.vpc_id
-  vpc_cidr           = module.network.vpc_cidr
-  private_subnet_ids = module.network.private_subnet_ids
+
+
+# ========================================
+# Monitoring Module (Auto-Trigger)
+# CloudWatch Alarm -> SNS -> Lambda -> Doctor Zone
+# ========================================
+module "monitoring" {
+  source = "./modules/monitoring"
+  count  = var.enable_monitoring ? 1 : 0
+
+  prefix         = var.prefix
+  environment    = "prod"
+  log_group_name = module.app_cluster.cloudwatch_log_group_name
+
+  # Doctor Zone URL (GCP Cloud Run)
+  doctor_zone_url   = var.doctor_zone_url
+  slack_webhook_url = var.slack_webhook_url
+
+  # Resource references for additional alarms
+  ecs_cluster_name = module.app_cluster.ecs_cluster_name
+  ecs_service_name = module.app_cluster.ecs_service_name
+  alb_arn_suffix   = module.app_cluster.alb_arn_suffix
+  rds_instance_id  = module.database.instance_id
+
+  # Alarm thresholds (customizable)
+  error_threshold   = var.alarm_error_threshold
+  cpu_threshold     = var.alarm_cpu_threshold
+  memory_threshold  = var.alarm_memory_threshold
+  alb_5xx_threshold = var.alarm_5xx_threshold
+  rds_cpu_threshold = var.alarm_rds_cpu_threshold
+
+  # Optional email notification
+  alarm_email = var.alarm_email
+
+  depends_on = [module.app_cluster, module.database]
 }
 

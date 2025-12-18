@@ -35,10 +35,10 @@ app = FastAPI(
 # Environment variables
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 GCP_LOCATION = os.getenv("GCP_LOCATION", "us-central1")
-CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY")
+# CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY") # Removed: Using AWS Bedrock
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
-AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
-AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+# OIDC Keyless Authentication - AWS Access Key 불필요
+AWS_ROLE_ARN = os.getenv("AWS_ROLE_ARN")  # e.g., arn:aws:iam::123456789012:role/CloudDoctorRole
 AWS_REGION = os.getenv("AWS_REGION", "ap-northeast-2")
 LOG_GROUP_NAME = os.getenv("LOG_GROUP_NAME", "/ecs/patient-zone")
 
@@ -47,9 +47,8 @@ def check_environment():
     """Check required environment variables"""
     required = {
         "GCP_PROJECT_ID": GCP_PROJECT_ID,
-        "CLAUDE_API_KEY": CLAUDE_API_KEY,
-        "AWS_ACCESS_KEY_ID": AWS_ACCESS_KEY,
-        "AWS_SECRET_ACCESS_KEY": AWS_SECRET_KEY
+        # "CLAUDE_API_KEY": CLAUDE_API_KEY,  # Removed: using AWS Bedrock (OIDC)
+        "AWS_ROLE_ARN": AWS_ROLE_ARN  # OIDC Keyless - Access Key 불필요
     }
 
     missing = [k for k, v in required.items() if not v]
@@ -57,6 +56,7 @@ def check_environment():
         logger.error(f"Missing required environment variables: {missing}")
     else:
         logger.info("All required environment variables configured")
+        logger.info(f"   AWS Authentication: OIDC Keyless (Role: {AWS_ROLE_ARN})")
 
     if not SLACK_WEBHOOK_URL:
         logger.warning("SLACK_WEBHOOK_URL not set - notifications will be disabled")
@@ -70,6 +70,7 @@ async def startup_event():
     logger.info("   Doctor Zone:  GCP Cloud Run")
     logger.info("   AI Analysis:  Vertex AI Gemini 2.0 Flash")
     logger.info("   IaC Generate: Claude Sonnet 4.5")
+    logger.info("   AWS Auth:     OIDC Keyless (No Access Keys!)")
     logger.info("   Uses GCP Credits!")
     logger.info("=" * 60)
     check_environment()
@@ -128,22 +129,21 @@ async def analyze_patient_zone(
         logger.info(f"Starting analysis (last {time_range} minutes, max {max_logs} logs)")
 
         # Lazy import - 필요할 때만 로드
-        from aws_client import AWSClientDirect
+        from aws_client import AWSLogFetcher
         from log_analyzer_vertex import LogAnalyzer
         from terraform_generator import TerraformGenerator
 
-        # Step 1: Fetch CloudWatch Logs
-        logger.info("Step 1: Fetching logs from AWS CloudWatch...")
+        # Step 1: Fetch CloudWatch Logs (OIDC Keyless)
+        logger.info("Step 1: Fetching logs from AWS CloudWatch (OIDC Keyless)...")
 
-        if not AWS_ACCESS_KEY or not AWS_SECRET_KEY:
+        if not AWS_ROLE_ARN:
             raise HTTPException(
                 status_code=500,
-                detail="AWS credentials not configured"
+                detail="AWS_ROLE_ARN not configured for OIDC Keyless authentication"
             )
 
-        aws_client = AWSClientDirect(
-            aws_access_key_id=AWS_ACCESS_KEY,
-            aws_secret_access_key=AWS_SECRET_KEY,
+        aws_client = AWSLogFetcher(
+            role_arn=AWS_ROLE_ARN,
             region=AWS_REGION
         )
 
@@ -185,21 +185,21 @@ async def analyze_patient_zone(
         if generate_terraform and analysis["detected_issues"]:
             logger.info("Step 3: Generating Terraform fix with Claude...")
 
-            if not CLAUDE_API_KEY:
-                logger.warning("CLAUDE_API_KEY not set - skipping Terraform generation")
-            else:
-                generator = TerraformGenerator(api_key=CLAUDE_API_KEY)
+            # if not CLAUDE_API_KEY:
+            #     logger.warning("CLAUDE_API_KEY not set - skipping Terraform generation")
+            # else:
+            generator = TerraformGenerator(region_name=AWS_REGION)
 
-                patient_info = {
-                    "region": AWS_REGION,
-                    "vpc_cidr": "10.0.0.0/16",
-                    "ecs_cluster": "patient-zone-cluster",
-                    "rds_instance": "patient-zone-mysql",
-                    "alb_name": "patient-zone-alb"
-                }
+            patient_info = {
+                "region": AWS_REGION,
+                "vpc_cidr": "10.0.0.0/16",
+                "ecs_cluster": "patient-zone-cluster",
+                "rds_instance": "patient-zone-mysql",
+                "alb_name": "patient-zone-alb"
+            }
 
-                terraform_result = generator.generate_fix(analysis, patient_info)
-                logger.info("Terraform code generated")
+            terraform_result = generator.generate_fix(analysis, patient_info)
+            logger.info("Terraform code generated")
 
         # Step 4: Send to Slack (if requested)
         slack_sent = False
@@ -355,18 +355,17 @@ async def analyze_and_send_to_slack(time_range_minutes: int, triggered_by: str, 
 
         # Lazy import - 백그라운드 태스크에서만 로드
         import_start = datetime.utcnow()
-        from aws_client import AWSClientDirect
+        from aws_client import AWSLogFetcher
         from log_analyzer_vertex import LogAnalyzer
         from terraform_generator import TerraformGenerator
         import_duration = (datetime.utcnow() - import_start).total_seconds()
         logger.info(f"[REQ-{request_id}] Module imports took {import_duration:.2f}s")
 
-        # Step 1: CloudWatch Logs 조회
+        # Step 1: CloudWatch Logs 조회 (OIDC Keyless)
         step1_start = datetime.utcnow()
-        logger.info(f"[REQ-{request_id}] Step 1: Fetching CloudWatch logs...")
-        aws_client = AWSClientDirect(
-            aws_access_key_id=AWS_ACCESS_KEY,
-            aws_secret_access_key=AWS_SECRET_KEY,
+        logger.info(f"[REQ-{request_id}] Step 1: Fetching CloudWatch logs (OIDC Keyless)...")
+        aws_client = AWSLogFetcher(
+            role_arn=AWS_ROLE_ARN,
             region=AWS_REGION
         )
 
@@ -450,18 +449,17 @@ async def generate_terraform_and_send_to_slack(time_range_minutes: int, triggere
 
         # Lazy import - 백그라운드 태스크에서만 로드
         import_start = datetime.utcnow()
-        from aws_client import AWSClientDirect
+        from aws_client import AWSLogFetcher
         from log_analyzer_vertex import LogAnalyzer
         from terraform_generator import TerraformGenerator
         import_duration = (datetime.utcnow() - import_start).total_seconds()
         logger.info(f"[REQ-{request_id}] Module imports took {import_duration:.2f}s")
 
-        # Step 1: CloudWatch Logs 조회
+        # Step 1: CloudWatch Logs 조회 (OIDC Keyless)
         step1_start = datetime.utcnow()
-        logger.info(f"[REQ-{request_id}] Step 1: Fetching CloudWatch logs...")
-        aws_client = AWSClientDirect(
-            aws_access_key_id=AWS_ACCESS_KEY,
-            aws_secret_access_key=AWS_SECRET_KEY,
+        logger.info(f"[REQ-{request_id}] Step 1: Fetching CloudWatch logs (OIDC Keyless)...")
+        aws_client = AWSLogFetcher(
+            role_arn=AWS_ROLE_ARN,
             region=AWS_REGION
         )
 
@@ -505,17 +503,17 @@ async def generate_terraform_and_send_to_slack(time_range_minutes: int, triggere
             step3_start = datetime.utcnow()
             logger.info(f"[REQ-{request_id}] Step 3: Generating Terraform fix with Claude...")
 
-            if not CLAUDE_API_KEY:
-                logger.warning(f"[REQ-{request_id}] CLAUDE_API_KEY not set - skipping Terraform generation")
-                if SLACK_WEBHOOK_URL:
-                    notifier = SlackNotifier(webhook_url=SLACK_WEBHOOK_URL)
-                    notifier.send_simple_message(
-                        f"⚠️ Terraform 생성 실패 (요청: @{triggered_by})",
-                        f"Claude API 키가 설정되지 않았습니다.\n\n관리자에게 문의해주세요."
-                    )
-                return
+            # if not CLAUDE_API_KEY:
+            #     logger.warning(f"[REQ-{request_id}] CLAUDE_API_KEY not set - skipping Terraform generation")
+            #     if SLACK_WEBHOOK_URL:
+            #         notifier = SlackNotifier(webhook_url=SLACK_WEBHOOK_URL)
+            #         notifier.send_simple_message(
+            #             f"⚠️ Terraform 생성 실패 (요청: @{triggered_by})",
+            #             f"Claude API 키가 설정되지 않았습니다.\n\n관리자에게 문의해주세요."
+            #         )
+            #     return
 
-            generator = TerraformGenerator(api_key=CLAUDE_API_KEY)
+            generator = TerraformGenerator(region_name=AWS_REGION)
 
             patient_info = {
                 "region": AWS_REGION,

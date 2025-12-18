@@ -45,7 +45,8 @@ echo -e "${GREEN}✓ Service: ${SERVICE_NAME}${NC}"
 # Check required environment variables
 echo -e "\n${YELLOW}Checking required environment variables...${NC}"
 
-REQUIRED_VARS=("CLAUDE_API_KEY" "AWS_ACCESS_KEY_ID" "AWS_SECRET_ACCESS_KEY")
+# OIDC Keyless Authentication - AWS Access Key 불필요!
+REQUIRED_VARS=("CLAUDE_API_KEY" "AWS_ROLE_ARN")
 MISSING_VARS=()
 
 for VAR in "${REQUIRED_VARS[@]}"; do
@@ -60,10 +61,12 @@ if [ ${#MISSING_VARS[@]} -gt 0 ]; then
         echo -e "${RED}  - $VAR${NC}"
     done
     echo -e "${YELLOW}Please set them before deploying.${NC}"
+    echo -e "${YELLOW}Note: AWS_ROLE_ARN format: arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME${NC}"
     exit 1
 fi
 
 echo -e "${GREEN}✓ All required variables set${NC}"
+echo -e "${GREEN}✓ AWS Authentication: OIDC Keyless (No Access Keys!)${NC}"
 
 # Create Artifact Registry repository if it doesn't exist
 echo -e "\n${YELLOW}Setting up Artifact Registry...${NC}"
@@ -97,6 +100,8 @@ echo -e "${GREEN}✓ Image pushed successfully${NC}"
 # Deploy to Cloud Run
 echo -e "\n${YELLOW}Deploying to Cloud Run...${NC}"
 
+# OIDC Keyless Authentication - AWS Access Key를 환경변수로 주입하지 않음!
+# GCP Service Account의 OIDC 토큰으로 AWS AssumeRoleWithWebIdentity 사용
 gcloud run deploy ${SERVICE_NAME} \
     --image ${IMAGE_NAME}:latest \
     --platform managed \
@@ -106,8 +111,7 @@ gcloud run deploy ${SERVICE_NAME} \
     --set-env-vars "GCP_LOCATION=us-central1" \
     --set-env-vars "CLAUDE_API_KEY=${CLAUDE_API_KEY}" \
     --set-env-vars "SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}" \
-    --set-env-vars "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" \
-    --set-env-vars "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
+    --set-env-vars "AWS_ROLE_ARN=${AWS_ROLE_ARN}" \
     --set-env-vars "AWS_REGION=${AWS_REGION:-ap-northeast-2}" \
     --set-env-vars "LOG_GROUP_NAME=${LOG_GROUP_NAME:-/ecs/patient-zone}" \
     --memory 2Gi \

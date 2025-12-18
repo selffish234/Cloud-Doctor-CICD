@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams",
+        "logs:GetLogEvents",
+        "logs:FilterLogEvents"
+      ],
+      "Resource": [
+        "arn:aws:logs:ap-northeast-2:*:log-group:/ecs/patient-zone:*",
+        "arn:aws:logs:ap-northeast-2:*:log-group:/ecs/patient-zone"
+      ]
+    }
+  ]
+}

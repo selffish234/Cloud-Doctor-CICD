@@ -215,6 +215,79 @@ class AWSLogFetcher:
             logger.error(f"❌ Unexpected error while fetching logs: {str(e)}")
             raise
 
+    def get_error_logs(
+        self,
+        log_group_name: str,
+        minutes: int = 30,
+        max_logs: int = 100,
+        filter_pattern: str = "?ERROR ?Error ?error ?CRITICAL ?FATAL ?WARNING ?Warning"
+    ) -> List[Dict[str, Any]]:
+        """
+        CloudWatch Logs에서 에러 로그를 수집합니다. (Sync 버전 - main.py 호환)
+
+        Args:
+            log_group_name: CloudWatch Log Group 이름
+            minutes: 검색할 시간 범위 (분)
+            max_logs: 최대 결과 개수
+            filter_pattern: CloudWatch Logs Insights 필터 패턴
+
+        Returns:
+            로그 이벤트 리스트 [{"timestamp": ..., "message": ...}, ...]
+        """
+        try:
+            logs_client = self._get_logs_client()
+
+            # 시간 범위 계산 (밀리초 단위)
+            end_time = datetime.utcnow()
+            start_time = end_time - timedelta(minutes=minutes)
+
+            start_ms = int(start_time.timestamp() * 1000)
+            end_ms = int(end_time.timestamp() * 1000)
+
+            logger.info(f"📊 Fetching logs from CloudWatch (OIDC Keyless)...")
+            logger.info(f"   Log Group: {log_group_name}")
+            logger.info(f"   Time Range: {start_time.isoformat()} ~ {end_time.isoformat()}")
+            logger.info(f"   Filter: {filter_pattern}")
+
+            # CloudWatch Logs 쿼리
+            response = logs_client.filter_log_events(
+                logGroupName=log_group_name,
+                startTime=start_ms,
+                endTime=end_ms,
+                filterPattern=filter_pattern,
+                limit=max_logs
+            )
+
+            events = response.get('events', [])
+
+            # 로그 이벤트 변환
+            logs = []
+            for event in events:
+                logs.append({
+                    'timestamp': datetime.fromtimestamp(event['timestamp'] / 1000).isoformat(),
+                    'message': event['message'].strip(),
+                    'log_stream': event.get('logStreamName', 'unknown')
+                })
+
+            logger.info(f"✅ Fetched {len(logs)} log events (via OIDC Keyless)")
+
+            return logs
+
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            error_msg = e.response['Error']['Message']
+
+            if error_code == 'ResourceNotFoundException':
+                logger.error(f"❌ Log Group not found: {log_group_name}")
+                raise Exception(f"Log group '{log_group_name}' does not exist")
+            else:
+                logger.error(f"❌ CloudWatch Logs API error: {error_code} - {error_msg}")
+                raise Exception(f"Failed to fetch logs: {error_msg}")
+
+        except Exception as e:
+            logger.error(f"❌ Unexpected error while fetching logs: {str(e)}")
+            raise
+
     async def test_connection(self) -> Dict[str, Any]:
         """
         AWS 연결 테스트 (헬스체크용)

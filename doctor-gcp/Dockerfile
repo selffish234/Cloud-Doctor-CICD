@@ -25,7 +25,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # Copy application code
 # Use wildcard to include all Python files (main.py imports log_analyzer_vertex)
-COPY *.py .
+COPY *.py ./
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app

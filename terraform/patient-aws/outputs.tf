@@ -117,29 +117,27 @@ output "deployment_instructions" {
   EOT
 }
 
+
+
 # ========================================
-# VPN Outputs
+# Monitoring Outputs (Auto-Trigger)
 # ========================================
-output "vpn_endpoint_id" {
-  description = "Client VPN Endpoint ID"
-  value       = module.vpn[0].vpn_endpoint_id
+output "sns_topic_arn" {
+  description = "SNS Topic ARN for CloudWatch Alarms"
+  value       = var.enable_monitoring ? module.monitoring[0].sns_topic_arn : null
 }
 
-output "client_cert_pem" {
-  description = "Client Certificate PEM"
-  value       = module.vpn[0].client_cert_pem
-  sensitive   = true
+output "lambda_function_name" {
+  description = "Doctor Trigger Lambda function name"
+  value       = var.enable_monitoring ? module.monitoring[0].lambda_function_name : null
 }
 
-output "client_key_pem" {
-  description = "Client Private Key PEM"
-  value       = module.vpn[0].client_key_pem
-  sensitive   = true
+output "cloudwatch_alarms" {
+  description = "List of CloudWatch Alarm names"
+  value       = var.enable_monitoring ? module.monitoring[0].alarm_names : []
 }
 
-output "ca_cert_pem" {
-  description = "CA Certificate PEM"
-  value       = module.vpn[0].ca_cert_pem
+output "monitoring_status" {
+  description = "Auto-trigger monitoring status"
+  value       = var.enable_monitoring ? "enabled" : "disabled"
 }
-
-

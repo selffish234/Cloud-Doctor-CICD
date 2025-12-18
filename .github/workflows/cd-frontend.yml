@@ -2,54 +2,59 @@ name: Deploy Frontend
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches:
+      - main
     paths:
       - 'patient-aws/frontend/**'
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 env:
   AWS_REGION: ap-northeast-2
-  S3_BUCKET: joon-cloud-doctor234
-  DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} 
+  # Terraform Output에서 가져올 수 없으므로(CI 환경 격리), Secrets나 Variables로 받아야 함
+  # 하지만 초기 구축 단계이므로 Terraform Output 값을 GitHub Variable로 등록했다고 가정
+  S3_BUCKET: ${{ vars.FRONTEND_BUCKET_NAME }} 
+  CLOUDFRONT_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+  NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
 
 jobs:
   deploy:
-    name: Deploy
     runs-on: ubuntu-latest
-    environment: production
-
+    
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: './patient-aws/frontend/package-lock.json'
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: patient-aws/frontend/package-lock.json
 
-    - name: Install dependencies
-      working-directory: ./patient-aws/frontend
-      run: npm ci --legacy-peer-deps
+      - name: Install Dependencies
+        working-directory: patient-aws/frontend
+        run: npm ci
 
-    - name: Build
-      working-directory: ./patient-aws/frontend
-      run: npm run build
-      env:
-        NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+      - name: Build Frontend
+        working-directory: patient-aws/frontend
+        run: |
+          echo "Building frontend with API URL: $NEXT_PUBLIC_API_URL"
+          npm run build
 
-    - name: Sync to S3
-      working-directory: ./patient-aws/frontend
-      run: aws s3 sync out/ s3://${{ env.S3_BUCKET }} --delete
+      - name: Deploy to S3
+        run: |
+          aws s3 sync patient-aws/frontend/out s3://${{ env.S3_BUCKET }} --delete
 
-    - name: Invalidate CloudFront
-      if: env.DISTRIBUTION_ID != ''
-      run: aws cloudfront create-invalidation --distribution-id ${{ env.DISTRIBUTION_ID }} --paths "/*"
+      - name: Invalidate CloudFront Cache
+        run: |
+          aws cloudfront create-invalidation --distribution-id ${{ env.CLOUDFRONT_ID }} --paths "/*"
