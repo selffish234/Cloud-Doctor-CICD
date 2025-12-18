@@ -12,6 +12,18 @@
           "accounts.google.com:sub": "843761229274-compute@developer.gserviceaccount.com"
         }
       }
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::827913617839:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringLike": {
+          "token.actions.githubusercontent.com:sub": "repo:selffish234/Cloud-Doctor-CICD:*"
+        }
+      }
     }
   ]
 }

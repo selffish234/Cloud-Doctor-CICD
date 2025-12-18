@@ -57,8 +57,8 @@ resource "aws_db_instance" "this" {
 
   # Performance Insights for Doctor Zone monitoring
   enabled_cloudwatch_logs_exports = ["error", "general", "slowquery"]
-  performance_insights_enabled    = true
-  performance_insights_retention_period = 7
+  performance_insights_enabled    = false
+  # performance_insights_retention_period = 7 (Not supported for t3.micro)
 
   # Deletion protection for production
   skip_final_snapshot       = true
