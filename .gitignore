@@ -28,3 +28,6 @@ dist/
 .vscode/
 .idea/
 .DS_Store
+
+# PKI Data (Private Keys)
+**/pki_data.json

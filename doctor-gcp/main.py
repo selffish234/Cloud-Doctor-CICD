@@ -27,19 +27,19 @@ logger = logging.getLogger(__name__)
 
 # FastAPI app
 app = FastAPI(
-    title="Cloud Doctor - Enhanced (Vertex AI)",
-    description="Hybrid Cloud Monitoring with Vertex AI Gemini + Claude",
-    version="2.1.0"
+    title="Cloud Doctor - Enhanced (Vertex AI + Bedrock)",
+    description="Cost-Optimized Hybrid Cloud Monitoring with Vertex AI Gemini + AWS Bedrock Claude",
+    version="2.2.0"
 )
 
 # Environment variables
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 GCP_LOCATION = os.getenv("GCP_LOCATION", "us-central1")
-CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY")
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
 AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_REGION = os.getenv("AWS_REGION", "ap-northeast-2")
+BEDROCK_REGION = os.getenv("BEDROCK_REGION", "ap-northeast-1")  # Claude on Bedrock region
 LOG_GROUP_NAME = os.getenv("LOG_GROUP_NAME", "/ecs/patient-zone")
 
 
@@ -47,7 +47,6 @@ def check_environment():
     """Check required environment variables"""
     required = {
         "GCP_PROJECT_ID": GCP_PROJECT_ID,
-        "CLAUDE_API_KEY": CLAUDE_API_KEY,
         "AWS_ACCESS_KEY_ID": AWS_ACCESS_KEY,
         "AWS_SECRET_ACCESS_KEY": AWS_SECRET_KEY
     }
@@ -57,6 +56,7 @@ def check_environment():
         logger.error(f"Missing required environment variables: {missing}")
     else:
         logger.info("All required environment variables configured")
+        logger.info(f"AWS Bedrock region for Claude: {BEDROCK_REGION}")
 
     if not SLACK_WEBHOOK_URL:
         logger.warning("SLACK_WEBHOOK_URL not set - notifications will be disabled")
@@ -65,12 +65,12 @@ def check_environment():
 @app.on_event("startup")
 async def startup_event():
     logger.info("=" * 60)
-    logger.info("Cloud Doctor Enhanced (Vertex AI) - Starting...")
+    logger.info("Cloud Doctor Enhanced (Vertex AI + Bedrock) - Starting...")
     logger.info("   Patient Zone: AWS (CloudWatch Logs)")
     logger.info("   Doctor Zone:  GCP Cloud Run")
-    logger.info("   AI Analysis:  Vertex AI Gemini 2.0 Flash")
-    logger.info("   IaC Generate: Claude Sonnet 4.5")
-    logger.info("   Uses GCP Credits!")
+    logger.info("   AI Analysis:  Vertex AI Gemini 2.0 Flash (GCP Credits)")
+    logger.info("   IaC Generate: Claude Sonnet 4 via AWS Bedrock (AWS Budget)")
+    logger.info("   Cost-Optimized Hybrid AI!")
     logger.info("=" * 60)
     check_environment()
     logger.info("Doctor Zone Ready")
@@ -81,15 +81,15 @@ async def startup_event():
 async def root():
     """Health check endpoint"""
     return {
-        "service": "Cloud Doctor Enhanced (Vertex AI)",
+        "service": "Cloud Doctor Enhanced (Vertex AI + Bedrock)",
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "version": "2.1.0",
+        "version": "2.2.0",
         "features": {
-            "log_analysis": "Vertex AI Gemini 2.0 Flash",
-            "terraform_generation": "Claude Sonnet 4.5",
+            "log_analysis": "Vertex AI Gemini 2.0 Flash (GCP Credits)",
+            "terraform_generation": "Claude Sonnet 4 via AWS Bedrock (AWS Budget)",
             "slack_notifications": bool(SLACK_WEBHOOK_URL),
-            "uses_gcp_credits": True
+            "cost_optimized": "Hybrid AI with dual cloud credits"
         }
     }
 
@@ -183,23 +183,20 @@ async def analyze_patient_zone(
         # Step 3: Generate Terraform fix (if requested and issues found)
         terraform_result = None
         if generate_terraform and analysis["detected_issues"]:
-            logger.info("Step 3: Generating Terraform fix with Claude...")
+            logger.info("Step 3: Generating Terraform fix with Claude via Bedrock...")
 
-            if not CLAUDE_API_KEY:
-                logger.warning("CLAUDE_API_KEY not set - skipping Terraform generation")
-            else:
-                generator = TerraformGenerator(api_key=CLAUDE_API_KEY)
+            generator = TerraformGenerator(aws_region=BEDROCK_REGION)
 
-                patient_info = {
-                    "region": AWS_REGION,
-                    "vpc_cidr": "10.0.0.0/16",
-                    "ecs_cluster": "patient-zone-cluster",
-                    "rds_instance": "patient-zone-mysql",
-                    "alb_name": "patient-zone-alb"
-                }
+            patient_info = {
+                "region": AWS_REGION,
+                "vpc_cidr": "10.0.0.0/16",
+                "ecs_cluster": "patient-zone-cluster",
+                "rds_instance": "patient-zone-mysql",
+                "alb_name": "patient-zone-alb"
+            }
 
-                terraform_result = generator.generate_fix(analysis, patient_info)
-                logger.info("Terraform code generated")
+            terraform_result = generator.generate_fix(analysis, patient_info)
+            logger.info("Terraform code generated")
 
         # Step 4: Send to Slack (if requested)
         slack_sent = False
@@ -503,19 +500,9 @@ async def generate_terraform_and_send_to_slack(time_range_minutes: int, triggere
         terraform_result = None
         if analysis["detected_issues"]:
             step3_start = datetime.utcnow()
-            logger.info(f"[REQ-{request_id}] Step 3: Generating Terraform fix with Claude...")
+            logger.info(f"[REQ-{request_id}] Step 3: Generating Terraform fix with Claude via Bedrock...")
 
-            if not CLAUDE_API_KEY:
-                logger.warning(f"[REQ-{request_id}] CLAUDE_API_KEY not set - skipping Terraform generation")
-                if SLACK_WEBHOOK_URL:
-                    notifier = SlackNotifier(webhook_url=SLACK_WEBHOOK_URL)
-                    notifier.send_simple_message(
-                        f"⚠️ Terraform 생성 실패 (요청: @{triggered_by})",
-                        f"Claude API 키가 설정되지 않았습니다.\n\n관리자에게 문의해주세요."
-                    )
-                return
-
-            generator = TerraformGenerator(api_key=CLAUDE_API_KEY)
+            generator = TerraformGenerator(aws_region=BEDROCK_REGION)
 
             patient_info = {
                 "region": AWS_REGION,

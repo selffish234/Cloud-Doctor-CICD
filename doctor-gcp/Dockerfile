@@ -1,5 +1,6 @@
 # Cloud Doctor - Enhanced Doctor Zone Dockerfile
-# GCP Cloud Run deployment with Gemini + Claude AI
+# GCP Cloud Run deployment with Vertex AI Gemini + AWS Bedrock Claude
+# Cost-optimized: Uses GCP credits for analysis + AWS budget for IaC generation
 
 FROM python:3.11-slim
 

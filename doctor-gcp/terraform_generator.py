@@ -1,18 +1,25 @@
 """
 Doctor Zone - Terraform Generator
-Uses Claude 3.5 Sonnet to generate infrastructure fixes as Terraform code
+Uses Claude 3.5 Sonnet via AWS Bedrock to generate infrastructure fixes as Terraform code
 """
 
-import anthropic
+import boto3
+import json
 from typing import Dict, List
 
 
 class TerraformGenerator:
-    """Generates Terraform code to fix detected infrastructure issues"""
+    """Generates Terraform code to fix detected infrastructure issues using AWS Bedrock"""
 
-    def __init__(self, api_key: str):
-        """Initialize Claude AI client"""
-        self.client = anthropic.Anthropic(api_key=api_key)
+    def __init__(self, aws_region: str = "ap-northeast-1"):
+        """
+        Initialize AWS Bedrock client for Claude
+
+        Args:
+            aws_region: AWS region for Bedrock (Claude available in ap-northeast-1, us-east-1, us-west-2)
+        """
+        self.bedrock = boto3.client('bedrock-runtime', region_name=aws_region)
+        self.model_id = "anthropic.claude-sonnet-4-20250514-v1:0"  # Claude Sonnet 4 on Bedrock
 
     def generate_fix(self, analysis: Dict, patient_zone_info: Dict) -> Dict:
         """
@@ -38,16 +45,26 @@ class TerraformGenerator:
         prompt = self._build_generation_prompt(analysis, patient_zone_info)
 
         try:
-            message = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=4000,
-                messages=[{
+            # Bedrock API request body
+            request_body = {
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": 4000,
+                "messages": [{
                     "role": "user",
                     "content": prompt
                 }]
+            }
+
+            # Call Bedrock
+            response = self.bedrock.invoke_model(
+                modelId=self.model_id,
+                body=json.dumps(request_body)
             )
 
-            response_text = message.content[0].text
+            # Parse response
+            response_body = json.loads(response['body'].read())
+            response_text = response_body['content'][0]['text']
+
             result = self._parse_claude_response(response_text)
             return result
 
@@ -55,7 +72,7 @@ class TerraformGenerator:
             return {
                 "terraform_code": f"# Error generating Terraform code: {str(e)}",
                 "explanation": f"Failed to generate fix: {str(e)}",
-                "apply_instructions": ["Check Claude API configuration", "Verify API key"]
+                "apply_instructions": ["Check AWS Bedrock configuration", "Verify AWS credentials and region"]
             }
 
     def _build_generation_prompt(self, analysis: Dict, patient_info: Dict) -> str:

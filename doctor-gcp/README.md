@@ -6,20 +6,24 @@ AWS Patient Zone의 CloudWatch Logs를 실시간 분석하고, AI로 문제를 �
 
 ## 📋 개요
 
-Doctor Zone은 **Gemini 2.5 Flash**로 로그를 분석하고, **Claude Sonnet 4.5**로 인프라 수정 코드를 생성하는 AI 기반 SRE 도구입니다.
+Doctor Zone은 **Vertex AI Gemini 2.0 Flash**로 로그를 분석하고, **AWS Bedrock Claude Sonnet 4**로 인프라 수정 코드를 생성하는 AI 기반 SRE 도구입니다.
+
+**비용 최적화:**
+- Gemini 분석: GCP 크레딧 사용 (Vertex AI)
+- Claude Terraform 생성: AWS 예산 사용 (Bedrock)
+- 별도의 API Key 불필요!
 
 ### 아키텍처
 
 ```
 AWS Patient Zone (CloudWatch Logs)
         ↓
-    [OIDC Auth]
-        ↓
 GCP Doctor Zone (Cloud Run)
         ↓
     ┌───────┴───────┐
     ↓               ↓
-Gemini 2.5      Claude 3.5
+Vertex AI       AWS Bedrock
+Gemini 2.0      Claude Sonnet 4
 (Log Analysis)  (Terraform Gen)
     ↓               ↓
     └───────┬───────┘
@@ -29,7 +33,7 @@ Gemini 2.5      Claude 3.5
 
 ## 🎯 주요 기능
 
-### 1. 로그 분석 (Gemini 2.5 Flash)
+### 1. 로그 분석 (Vertex AI Gemini 2.0 Flash)
 - CloudWatch Logs에서 에러 패턴 감지
 - 7가지 장애 시나리오 자동 분류:
   - `db-failure`: 데이터베이스 연결 실패
@@ -40,7 +44,7 @@ Gemini 2.5      Claude 3.5
   - `jwt-expiry`: JWT 토큰 만료
   - `high-cpu`: 높은 CPU 사용률
 
-### 2. Terraform 코드 생성 (Claude Sonnet 4.5)
+### 2. Terraform 코드 생성 (AWS Bedrock Claude Sonnet 4)
 - 감지된 문제에 대한 IaC 수정 코드 자동 생성
 - ECS, RDS, ALB 설정 최적화
 - 프로덕션 안전성 고려 (무중단 배포)
@@ -52,39 +56,51 @@ Gemini 2.5      Claude 3.5
 
 ## 🛠️ 사전 준비
 
-### 1. API 키 발급
+### 1. GCP 프로젝트 설정
 
 ```bash
-# Gemini API Key
-# https://aistudio.google.com/app/apikey
+# GCP 프로젝트 ID 설정
+export GCP_PROJECT_ID="your-gcp-project-id"
 
-# Claude API Key
-# https://console.anthropic.com/
-
-# Slack Webhook URL
-# https://api.slack.com/messaging/webhooks
+# Vertex AI API 활성화
+gcloud services enable aiplatform.googleapis.com --project=$GCP_PROJECT_ID
 ```
 
-### 2. AWS 자격증명
+### 2. AWS 자격증명 및 Bedrock 활성화
 
 ```bash
-# AWS Access Key (CloudWatch Logs 읽기 권한 필요)
+# AWS Access Key (CloudWatch Logs 읽기 + Bedrock 사용 권한 필요)
 export AWS_ACCESS_KEY_ID="your-access-key"
 export AWS_SECRET_ACCESS_KEY="your-secret-key"
+
+# AWS Bedrock에서 Claude 모델 활성화
+# 1. AWS Console > Bedrock > Model access
+# 2. "Manage model access" 클릭
+# 3. "Anthropic > Claude Sonnet 4" 체크
+# 4. "Save changes"
 ```
 
-### 3. 환경 변수 설정
+### 3. Slack Webhook (선택사항)
 
 ```bash
-# .env 파일 생성
+# Slack App 생성 후 Webhook URL 발급
+# https://api.slack.com/messaging/webhooks
+export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/XXX/YYY/ZZZ"
+```
+
+### 4. 환경 변수 설정
+
+```bash
+# .env 파일 생성 (로컬 테스트용)
 cat > .env <<EOF
-GEMINI_API_KEY=your-gemini-api-key
-CLAUDE_API_KEY=your-claude-api-key
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/XXX/YYY/ZZZ
+GCP_PROJECT_ID=your-gcp-project-id
+GCP_LOCATION=us-central1
 AWS_ACCESS_KEY_ID=your-aws-access-key
 AWS_SECRET_ACCESS_KEY=your-aws-secret-key
 AWS_REGION=ap-northeast-2
+BEDROCK_REGION=ap-northeast-1
 LOG_GROUP_NAME=/ecs/patient-zone
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/XXX/YYY/ZZZ
 EOF
 ```
 
@@ -149,17 +165,22 @@ gcloud run deploy doctor-zone \
   --platform managed \
   --region ${GCP_REGION} \
   --allow-unauthenticated \
-  --set-env-vars "GEMINI_API_KEY=${GEMINI_API_KEY}" \
-  --set-env-vars "CLAUDE_API_KEY=${CLAUDE_API_KEY}" \
-  --set-env-vars "SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}" \
+  --set-env-vars "GCP_PROJECT_ID=${GCP_PROJECT_ID}" \
+  --set-env-vars "GCP_LOCATION=us-central1" \
   --set-env-vars "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" \
   --set-env-vars "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
   --set-env-vars "AWS_REGION=ap-northeast-2" \
+  --set-env-vars "BEDROCK_REGION=ap-northeast-1" \
   --set-env-vars "LOG_GROUP_NAME=/ecs/patient-zone" \
-  --memory 512Mi \
+  --set-env-vars "SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}" \
+  --memory 2Gi \
   --cpu 1 \
   --max-instances 3
 ```
+
+**주의사항:**
+- `BEDROCK_REGION`은 Claude가 지원되는 리전이어야 합니다 (ap-northeast-1, us-east-1, us-west-2)
+- 메모리를 2Gi로 설정 (Vertex AI + Bedrock 동시 사용)
 
 ### 3. 배포 확인
 
@@ -262,15 +283,23 @@ gcloud monitoring time-series list \
 
 ## 💰 비용 최적화
 
+**하이브리드 AI로 비용 절감!**
+
 - **Cloud Run**: 요청 기반 과금 (무료 티어: 월 200만 요청)
-- **Gemini API**: 무료 티어 사용 (분당 15 RPM, 일일 1500 RPM)
-- **Claude API**: 종량제 (입력 $3/MTok, 출력 $15/MTok)
-- **예상 월 비용**: ~$10-20 (테스트 환경)
+- **Vertex AI Gemini**: GCP 크레딧 사용 (무료 할당량 충분)
+- **AWS Bedrock Claude**: AWS 예산 사용 (별도 Anthropic API 결제 불필요)
+- **예상 월 비용**: ~$5-15 (테스트 환경, 기존 클라우드 예산 활용)
+
+**장점:**
+- 별도의 API Key 관리 불필요
+- 클라우드 통합 청구
+- GCP 크레딧 + AWS 예산 동시 활용
 
 ## 🎯 Megazone Cloud 포트폴리오 포인트
 
 ✅ **Hybrid Cloud**: AWS + GCP 통합 아키텍처
-✅ **AI 활용**: Gemini (분석) + Claude (코드생성) 2단계 AI 파이프라인
+✅ **AI 활용**: Vertex AI Gemini (분석) + AWS Bedrock Claude (코드생성) 2단계 AI 파이프라인
+✅ **비용 최적화**: GCP 크레딧 + AWS 예산 동시 활용, API Key 불필요
 ✅ **IaC 자동화**: 문제 → Terraform 코드 자동 생성
 ✅ **SRE 실무**: CloudWatch Logs 기반 장애 감지
 ✅ **Slack DevOps**: 실시간 알림 및 협업 도구 통합
@@ -278,4 +307,5 @@ gcloud monitoring time-series list \
 ---
 
 **작성일**: 2024-12-10
+**업데이트**: 2025-12-19 (AWS Bedrock 통합)
 **문의**: Cloud Doctor MVP 프로젝트 팀

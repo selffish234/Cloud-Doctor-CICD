@@ -3,8 +3,6 @@ name: Deploy Infrastructure
 on:
   push:
     branches: [ "main", "dev" ]
-    paths:
-      - 'terraform/**'
   workflow_dispatch:
 
 env:
@@ -49,15 +47,4 @@ jobs:
         # Create minimal tfvars file from secrets if needed, or rely on defaults + ENV vars
         # We assume tfvars are committed or passed via env vars TF_VAR_xxx
         
-        # terraform apply -auto-approve
-        # WARNING: We are skipping actual apply in this example to prevent accidental changes during demo.
-        # Uncomment the line below to enable actual apply.
-        # Variables are now passed via 'env' block above
-        # export TF_VAR_db_password="${{ secrets.TF_VAR_DB_PASSWORD }}"
-        # export TF_VAR_jwt_secret="${{ secrets.TF_VAR_JWT_SECRET }}"
-        # export TF_VAR_domain_name="${{ vars.DOMAIN_NAME }}"
-        
-        # terraform apply -auto-approve
-        # WARNING: We are skipping actual apply in this example to prevent accidental changes during demo.
-        # Uncomment the line below to enable actual apply.
-        terraform plan -no-color
+        terraform apply -auto-approve
