@@ -1,0 +1,24 @@
+name: Cloud Doctor CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  workflow_dispatch:
+
+jobs:
+  infra:
+    name: Deploy Infrastructure
+    uses: ./.github/workflows/cd-infra.yml
+    secrets: inherit
+
+  backend:
+    name: Deploy Backend
+    needs: infra
+    uses: ./.github/workflows/cd-backend.yml
+    secrets: inherit
+
+  frontend:
+    name: Deploy Frontend
+    needs: backend
+    uses: ./.github/workflows/cd-frontend.yml
+    secrets: inherit
