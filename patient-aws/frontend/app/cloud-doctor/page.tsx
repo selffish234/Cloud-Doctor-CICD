@@ -21,7 +21,7 @@ export default function CloudDoctorPage() {
             AWS + GCP Hybrid Cloud Monitoring System
           </p>
           <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
-            Megazone Cloud 최종 프로젝트 - AI 기반 하이브리드 클라우드 모니터링 및 자동화 시스템
+            AI 기반 하이브리드 클라우드 모니터링 및 자동화 시스템 - 비용 최적화된 듀얼 AI 아키텍처
           </p>
         </div>
 
@@ -45,9 +45,9 @@ export default function CloudDoctorPage() {
                 Doctor Zone (GCP)
               </h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>🔍 <strong>AI Analysis:</strong> Vertex AI Gemini 2.0</li>
-                <li>🛠️ <strong>IaC Generation:</strong> Claude Sonnet 4.5</li>
-                <li>📢 <strong>Notification:</strong> Slack Webhook</li>
+                <li>🔍 <strong>AI Analysis:</strong> Vertex AI Gemini 2.0 (GCP 크레딧)</li>
+                <li>🛠️ <strong>IaC Generation:</strong> AWS Bedrock Claude Sonnet 4 (AWS 예산)</li>
+                <li>📢 <strong>ChatOps:</strong> Slack Webhook + Slash Commands</li>
                 <li>☁️ <strong>Platform:</strong> Cloud Run (Serverless)</li>
               </ul>
             </div>
@@ -63,15 +63,15 @@ export default function CloudDoctorPage() {
             </p>
           </Card>
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-3">🤖 AI 자동화</h3>
+            <h3 className="text-lg font-semibold mb-3">💰 비용 최적화 AI</h3>
             <p className="text-sm text-muted-foreground">
-              Gemini로 로그 분석, Claude로 Terraform 코드 자동 생성
+              GCP 크레딧(Gemini) + AWS 예산(Bedrock Claude) 활용. API Key 불필요!
             </p>
           </Card>
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-3">🏗️ IaC 관리</h3>
+            <h3 className="text-lg font-semibold mb-3">🏗️ CI/CD 자동화</h3>
             <p className="text-sm text-muted-foreground">
-              Terraform으로 모듈화된 AWS 3-Tier 아키텍처 구축
+              GitHub Actions로 Terraform + ECS + S3 배포 완전 자동화
             </p>
           </Card>
         </div>
@@ -117,11 +117,11 @@ export default function CloudDoctorPage() {
             </div>
             <div className="text-center">
               <div className="text-sm font-semibold mb-1">Infrastructure</div>
-              <div className="text-xs text-muted-foreground">Terraform, AWS, GCP</div>
+              <div className="text-xs text-muted-foreground">Terraform, GitHub Actions</div>
             </div>
             <div className="text-center">
               <div className="text-sm font-semibold mb-1">AI/ML</div>
-              <div className="text-xs text-muted-foreground">Gemini, Claude</div>
+              <div className="text-xs text-muted-foreground">Vertex AI, Bedrock</div>
             </div>
           </div>
         </Card>

@@ -22,15 +22,15 @@ export function CloudDoctorSection() {
             <div>
               <h3 className="text-xl font-semibold mb-4">프로젝트 개요</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Megazone Cloud 최종 프로젝트로 개발한 AWS + GCP 하이브리드 클라우드 모니터링 시스템입니다.
+                AWS + GCP 하이브리드 클라우드 모니터링 시스템입니다.
                 AI를 활용하여 장애를 자동 감지하고 Terraform 코드를 생성하여 자동 복구를 수행합니다.
               </p>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>✅ AWS 3-Tier 아키텍처 (CloudFront, ECS, RDS)</li>
-                <li>✅ Terraform IaC 모듈화 구조</li>
-                <li>✅ Vertex AI Gemini 로그 분석</li>
-                <li>✅ Claude AI Terraform 코드 생성</li>
-                <li>✅ 7가지 실제 장애 시나리오 구현</li>
+                <li>✅ Terraform IaC 모듈화 + GitHub Actions CI/CD</li>
+                <li>✅ Vertex AI Gemini 로그 분석 (GCP 크레딧)</li>
+                <li>✅ AWS Bedrock Claude Terraform 생성 (AWS 예산)</li>
+                <li>✅ 7가지 실제 장애 시나리오 + Slack ChatOps</li>
               </ul>
             </div>
             <div>
@@ -45,12 +45,12 @@ export function CloudDoctorSection() {
                   <div className="text-xs text-muted-foreground">FastAPI, Vertex AI, Cloud Run</div>
                 </div>
                 <div className="bg-white dark:bg-gray-800 rounded p-3">
-                  <div className="text-xs font-semibold text-purple-600 mb-1">IaC</div>
-                  <div className="text-xs text-muted-foreground">Terraform, Modules</div>
+                  <div className="text-xs font-semibold text-purple-600 mb-1">IaC & CI/CD</div>
+                  <div className="text-xs text-muted-foreground">Terraform, GitHub Actions</div>
                 </div>
                 <div className="bg-white dark:bg-gray-800 rounded p-3">
-                  <div className="text-xs font-semibold text-orange-600 mb-1">AI</div>
-                  <div className="text-xs text-muted-foreground">Gemini 2.0, Claude Sonnet 4.5</div>
+                  <div className="text-xs font-semibold text-orange-600 mb-1">AI (비용 최적화)</div>
+                  <div className="text-xs text-muted-foreground">Gemini 2.0, Bedrock Claude</div>
                 </div>
               </div>
               <div className="flex gap-4">
@@ -77,9 +77,9 @@ export function CloudDoctorSection() {
             </p>
           </Card>
           <Card className="p-6">
-            <h4 className="font-semibold mb-2">🤖 AI 자동화</h4>
+            <h4 className="font-semibold mb-2">🤖 비용 최적화 AI</h4>
             <p className="text-sm text-muted-foreground">
-              Gemini AI로 CloudWatch 로그를 분석하고, Claude AI로 Terraform 복구 코드를 자동 생성합니다.
+              Vertex AI Gemini(GCP 크레딧)로 로그 분석, AWS Bedrock Claude(AWS 예산)로 Terraform 코드 생성. API Key 불필요!
             </p>
           </Card>
           <Card className="p-6">

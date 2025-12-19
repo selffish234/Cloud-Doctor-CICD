@@ -9,10 +9,10 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 // <CHANGE> SEO 메타데이터를 클라우드 엔지니어 포트폴리오에 맞게 업데이트
 export const metadata: Metadata = {
-  title: "김서준 - Cloud System Engineer Portfolio",
-  description: "클라우드 인프라와 아키텍처 설계에 열정을 가진 클라우드 시스템 엔지니어 김서준의 포트폴리오입니다.",
+  title: "김서준 - Cloud System Engineer Portfolio | Cloud Doctor MVP",
+  description: "AWS + GCP 하이브리드 클라우드 모니터링 시스템. Vertex AI Gemini와 AWS Bedrock Claude를 활용한 비용 최적화 AI 아키텍처.",
   generator: "v0.app",
-  keywords: ["Cloud Engineer", "AWS", "Azure", "Cloud Architecture", "MSP", "클라우드 엔지니어", "김서준"],
+  keywords: ["Cloud Engineer", "AWS", "GCP", "Hybrid Cloud", "AI Monitoring", "Terraform", "클라우드 엔지니어", "김서준", "Cloud Doctor"],
   authors: [{ name: "김서준 (Seojoon Kim)" }],
   icons: {
     icon: [
