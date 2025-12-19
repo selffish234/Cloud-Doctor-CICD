@@ -249,16 +249,3 @@ module "static_site" {
 }
 
 
-# ========================================
-# Client VPN Module
-# ========================================
-module "vpn" {
-  source = "./modules/vpn"
-  count  = var.enable_vpn ? 1 : 0
-
-  prefix             = var.prefix
-  vpc_id             = module.network.vpc_id
-  vpc_cidr           = module.network.vpc_cidr
-  private_subnet_ids = module.network.private_subnet_ids
-}
-

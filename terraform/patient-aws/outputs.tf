@@ -116,30 +116,3 @@ output "deployment_instructions" {
 
   EOT
 }
-
-# ========================================
-# VPN Outputs
-# ========================================
-output "vpn_endpoint_id" {
-  description = "Client VPN Endpoint ID"
-  value       = module.vpn[0].vpn_endpoint_id
-}
-
-output "client_cert_pem" {
-  description = "Client Certificate PEM"
-  value       = module.vpn[0].client_cert_pem
-  sensitive   = true
-}
-
-output "client_key_pem" {
-  description = "Client Private Key PEM"
-  value       = module.vpn[0].client_key_pem
-  sensitive   = true
-}
-
-output "ca_cert_pem" {
-  description = "CA Certificate PEM"
-  value       = module.vpn[0].ca_cert_pem
-}
-
-

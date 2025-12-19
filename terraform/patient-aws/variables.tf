@@ -81,10 +81,3 @@ variable "domain_name" {
   type        = string
   default     = "" # Optional: Leave empty if not using custom domain
 }
-
-variable "enable_vpn" {
-  description = "Enable AWS Client VPN"
-  type        = bool
-  default     = true
-}
-
